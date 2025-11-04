@@ -1,12 +1,13 @@
-// src/modules/users/users.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
+import { UsersController } from './users.controller'; // <-- 1. IMPORTAR EL CONTROLADOR
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User])], // Registra la entidad User
+  imports: [TypeOrmModule.forFeature([User])],
   providers: [UsersService],
-  exports: [UsersService], // Exportamos el servicio para que Auth lo pueda usar
+  exports: [UsersService],
+  controllers: [UsersController], // <-- 2. AÑADIRLO AQUÍ
 })
 export class UsersModule {}

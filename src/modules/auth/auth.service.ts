@@ -11,7 +11,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async register(email: string, pass: string): Promise<{ access_token: string }> {
+  async register(Nombre_Usuario: string, email: string, pass: string): Promise<{ access_token: string }> {
     // 1. Verificar si el usuario ya existe
     const existingUser = await this.usersService.findByEmail(email);
     if (existingUser) {
@@ -23,7 +23,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(pass, saltRounds);
 
     // 3. Crear el usuario
-    const user = await this.usersService.create(email, passwordHash);
+    const user = await this.usersService.create(Nombre_Usuario, email, passwordHash);
 
     // 4. Generar y devolver el token JWT
     const payload = { sub: user.id, email: user.email };

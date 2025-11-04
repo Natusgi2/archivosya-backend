@@ -1,19 +1,24 @@
 // src/modules/users/entities/user.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, Unique } from 'typeorm';
+import { File } from '../../files/entities/file.entity'; // <-- 1. Importar
+import { Entity, PrimaryGeneratedColumn, Column, Unique, OneToMany } from 'typeorm'; // <-- 2. Importar OneToMany
 
-@Entity('users') // Nombre de la tabla en PostgreSQL
-@Unique(['email']) // El email debe ser único
+@Entity('users')
+@Unique(['email'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 50 })
+  Nombre_Usuario: string;
+
+  @Column({ type: 'varchar', length: 150 })
   email: string;
 
-  @Column({ type: 'varchar' })
-  passwordHash: string; // NUNCA guardes la contraseña en texto plano
+  @Column({ type: 'varchar', length: 70 })
+  passwordHash: string;
 
-  // Aquí es donde conectaremos los archivos y permisos más adelante
-  // @OneToMany(() => File, (file) => file.owner)
-  // files: File[];
+  // --- Relación Clave ---
+  // UN usuario puede tener MUCHOS archivos
+  @OneToMany(() => File, (file) => file.owner) // <-- 3. Añadir esta relación
+  files: File[];
 }

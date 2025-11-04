@@ -14,7 +14,11 @@ export class AuthController {
   @Post('register')
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   signUp(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto.email, registerDto.password);
+    return this.authService.register(
+      registerDto.Nombre_Usuario,
+      registerDto.email,
+      registerDto.password,
+    );
   }
 
   /**

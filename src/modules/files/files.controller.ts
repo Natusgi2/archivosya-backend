@@ -1,56 +1,37 @@
-/* // src/modules/files/files.controller.ts
-import { Controller, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { FilesService } from './files.service';
-
-@Controller('files') // Esto define la ruta base: /api/files
-export class FilesController {
-
-  // NestJS inyecta el servicio automáticamente (Inyección de Dependencias)
-  constructor(private readonly filesService: FilesService) {}
-
-  @Post('upload') // Esto crea el endpoint: POST /api/files/upload
-  @UseInterceptors(FileInterceptor('file')) // Middleware para manejar la subida
-  uploadFile(@UploadedFile() file: Express.Multer.File) {
-    
-    console.log(file); // Aquí reciben el archivo
-    
-    // Aquí llamarán a su servicio, que usará el Patrón Strategy
-    // return this.filesService.handleFileUpload(file);
-
-    return {
-      message: 'Archivo recibido, lógica de MVP pendiente',
-      filename: file.originalname,
-    };
-  }
-} */
-
 // src/modules/files/files.controller.ts
-// ... (imports)
-
-//codigo pre implementacion de la persistencia de datos.
-
-// src/modules/files/files.controller.ts
-
-import { 
-  Controller, 
-  Post, 
-  UploadedFile, 
-  UseInterceptors 
+import {
+  Controller,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+  UseGuards,
+  Get, // <-- AÑADIMOS 'Get' A LA IMPORTACIÓN
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
-import type { Express } from 'express'; // Importante para el tipo 'Multer.File'
+import type { Express } from 'express';
+import { AuthGuard } from '@nestjs/passport';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @Controller('files')
+@UseGuards(AuthGuard('jwt')) // <-- Protegemos todas las rutas de este controlador
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file')) // La llave 'file' que hablamos
-  uploadFile(@UploadedFile() file: Express.Multer.File) {
-    
-    // Ahora delegamos la lógica al servicio
-    return this.filesService.handleFileUpload(file);
+  @UseInterceptors(FileInterceptor('file'))
+  uploadFile(
+    @UploadedFile() file: Express.Multer.File,
+    @GetUser() user: User, // <-- Obtenemos el usuario logueado
+  ) {
+    // Pasamos el archivo Y el usuario al servicio
+    return this.filesService.handleFileUpload(file, user);
+  }
+
+  // --- ENDPOINT 'GET MY FILES' ---
+  @Get('my-files')
+  getMyFiles(@GetUser() user: User) {
+    return this.filesService.getFilesForUser(user.id);
   }
 }

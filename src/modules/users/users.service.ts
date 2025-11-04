@@ -14,8 +14,16 @@ export class UsersService {
   /**
    * Crea un nuevo usuario en la base de datos
    */
-  async create(email: string, passwordHash: string): Promise<User> {
-    const newUser = this.usersRepository.create({ email, passwordHash });
+  async create(
+    Nombre_Usuario: string, // <-- 1. AÑADIMOS EL NUEVO PARÁMETRO
+    email: string,
+    passwordHash: string,
+  ): Promise<User> {
+    const newUser = this.usersRepository.create({
+      Nombre_Usuario, // <-- 2. LO PASAMOS AQUÍ
+      email,
+      passwordHash,
+    });
     return this.usersRepository.save(newUser);
   }
 
@@ -31,5 +39,17 @@ export class UsersService {
    */
   async findById(id: string): Promise<User | null> {
     return this.usersRepository.findOneBy({ id });
+  }
+
+  /**
+   * Obtiene una lista de todos los usuarios (sin sus contraseñas)
+   */
+  async findAll() {
+    const users = await this.usersRepository.find();
+    // ¡Importante! Nunca devuelvas las contraseñas
+    return users.map((user) => {
+      const { passwordHash, ...result } = user;
+      return result;
+    });
   }
 }

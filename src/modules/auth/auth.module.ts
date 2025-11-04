@@ -2,21 +2,25 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { UsersModule } from '../users/users.module'; // Importante: Trae UsersService
+import { UsersModule } from '../users/users.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { JwtStrategy } from './jwt.strategy'; // <-- 1. Importar
 
 @Module({
   imports: [
-    UsersModule, // Para poder usar el UsersService
+    UsersModule,
     PassportModule,
     JwtModule.register({
-      global: true, // Hacemos el módulo JWT global
-      secret: 'ESTA-ES-TU-CLAVE-SECRETA-CAMBIAME', // ¡Cambia esto en producción!
-      signOptions: { expiresIn: '1h' }, // El token dura 1 hora
+      global: true,
+      secret: 'ESTA-ES-TU-CLAVE-SECRETA-CAMBIAME',
+      signOptions: { expiresIn: '1h' },
     }),
   ],
-  providers: [AuthService], // (Luego agregaremos la JwtStrategy aquí)
+  providers: [
+    AuthService,
+    JwtStrategy, // <-- 2. Añadir como provider
+  ],
   controllers: [AuthController],
 })
 export class AuthModule {}

@@ -1,21 +1,22 @@
-// src/modules/files/files.module.ts
 import { Module } from '@nestjs/common';
 import { FilesController } from './files.controller';
 import { FilesService } from './files.service';
 import { LocalStorageStrategy } from './strategies/local-storage.strategy';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { File } from './entities/file.entity';
 
 @Module({
+  imports: [TypeOrmModule.forFeature([File])],
   controllers: [FilesController],
   providers: [
     FilesService,
-    // Así le decimos a NestJS que cuando alguien pida 'IStorageStrategy',
-    // debe entregar una instancia de 'LocalStorageStrategy'.
-    // Esto cumple tu Patrón Strategy [cite: 146]
     {
-      provide: 'IStorageStrategy', // Usamos un "token" de string
+      provide: 'IStorageStrategy',
       useClass: LocalStorageStrategy,
     },
-    // Aquí registrarías tu Repositorio (ej. FileRepository)
   ],
+  // Exportamos FilesService para que otros módulos (como PermissionsModule)
+  // puedan inyectarlo y usarlo.
+  exports: [FilesService], // <-- ¡ESTA LÍNEA ES NUEVA!
 })
 export class FilesModule {}
