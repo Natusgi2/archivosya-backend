@@ -1,11 +1,12 @@
-// src/modules/files/files.controller.ts
 import {
   Controller,
   Post,
   UploadedFile,
   UseInterceptors,
   UseGuards,
-  Get, // <-- AÑADIMOS 'Get' A LA IMPORTACIÓN
+  Get,
+  Param,           // <-- 1. Importar
+  Put,             // <-- 1. Importar
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
@@ -15,23 +16,40 @@ import { GetUser } from '../auth/decorators/get-user.decorator';
 import { User } from '../users/entities/user.entity';
 
 @Controller('files')
-@UseGuards(AuthGuard('jwt')) // <-- Protegemos todas las rutas de este controlador
+@UseGuards(AuthGuard('jwt'))
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
+  // ... (endpoint 'uploadFile' existente) ...
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   uploadFile(
     @UploadedFile() file: Express.Multer.File,
-    @GetUser() user: User, // <-- Obtenemos el usuario logueado
+    @GetUser() user: User,
   ) {
-    // Pasamos el archivo Y el usuario al servicio
     return this.filesService.handleFileUpload(file, user);
   }
 
-  // --- ENDPOINT 'GET MY FILES' ---
+  // ... (endpoint 'getMyFiles' existente) ...
   @Get('my-files')
   getMyFiles(@GetUser() user: User) {
     return this.filesService.getFilesForUser(user.id);
   }
+
+
+  // --- NUEVO ENDPOINT DE MODIFICACIÓN ---
+  /**
+   * Reemplaza (actualiza) un archivo existente.
+   * Solo el dueño o un usuario con permiso de 'edit' puede hacerlo.
+   */
+  @Put(':id')
+  @UseInterceptors(FileInterceptor('file')) // Recibe un nuevo archivo
+  updateFile(
+    @Param('id') fileId: string,
+    @GetUser() user: User,
+    @UploadedFile() newFile: Express.Multer.File,
+  ) {
+    return this.filesService.updateFile(fileId, newFile, user);
+  }
 }
+

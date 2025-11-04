@@ -4,9 +4,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { FilesModule } from './modules/files/files.module';
 import { CollaborationModule } from './modules/collaboration/collaboration.module';
-import { UsersModule } from './modules/users/users.module'; // <-- ESTA LÍNEA ES IMPORTANTE
-import { AuthModule } from './modules/auth/auth.module';     // <-- ESTA LÍNEA ES IMPORTANTE
-import { PermissionsModule } from './modules/permissions/permissions.module'; // <-- ESTA LÍNEA ES IMPORTANTE
+import { UsersModule } from './modules/users/users.module'; 
+import { AuthModule } from './modules/auth/auth.module';     
+import { PermissionsModule } from './modules/permissions/permissions.module'; 
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
@@ -29,7 +29,7 @@ import { ConfigModule } from '@nestjs/config';
     // ¡Aquí se registran los módulos para que Nest los reconozca!
     FilesModule,
     CollaborationModule,
-    UsersModule, // <-- ¡AHORA SÍ ESTÁ REGISTRADO!
+    UsersModule,
     AuthModule,
     PermissionsModule,
   ],

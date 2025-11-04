@@ -1,6 +1,12 @@
-// src/modules/users/entities/user.entity.ts
-import { File } from '../../files/entities/file.entity'; // <-- 1. Importar
-import { Entity, PrimaryGeneratedColumn, Column, Unique, OneToMany } from 'typeorm'; // <-- 2. Importar OneToMany
+import { File } from '../../files/entities/file.entity';
+import { Permission } from '../../permissions/entities/permission.entity'; // <-- 1. Importar
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  Unique,
+  OneToMany,
+} from 'typeorm';
 
 @Entity('users')
 @Unique(['email'])
@@ -17,8 +23,13 @@ export class User {
   @Column({ type: 'varchar', length: 70 })
   passwordHash: string;
 
-  // --- Relación Clave ---
-  // UN usuario puede tener MUCHOS archivos
-  @OneToMany(() => File, (file) => file.owner) // <-- 3. Añadir esta relación
+  // Relación: Un usuario es dueño de muchos archivos
+  @OneToMany(() => File, (file) => file.owner)
   files: File[];
+
+  // --- NUEVA RELACIÓN ---
+  // Relación: Un usuario tiene muchos permisos
+  @OneToMany(() => Permission, (permission) => permission.user) // <-- 2. Añadir
+  permissions: Permission[];
 }
+
