@@ -1,8 +1,10 @@
+// src/modules/files/files.service.ts
 import {
   Inject,
   Injectable,
   forwardRef,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import type { IStorageStrategy } from './interfaces/storage-strategy.interface';
 import type { Express } from 'express';
@@ -12,6 +14,8 @@ import { File } from './entities/file.entity';
 import { Repository } from 'typeorm';
 import { PermissionsService } from '../permissions/permissions.service';
 import { PermissionLevel } from '../permissions/entities/permission.entity';
+import { createReadStream } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class FilesService {
@@ -37,13 +41,12 @@ export class FilesService {
       storagePath: savedPath,
       mimeType: file.mimetype,
       size: file.size,
-      owner: user, // <-- ¡Aquí vinculamos el archivo al usuario!
+      owner: user,
       ownerId: user.id,
     });
 
     await this.fileRepository.save(newFile);
 
-    // No devuelvas el objeto 'owner' completo en la respuesta
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { owner, ...result } = newFile;
 
@@ -53,18 +56,17 @@ export class FilesService {
     };
   }
 
+  // --- CORRECCIÓN DE ERROR (Faltaba 'return') ---
   async getFilesForUser(userId: string): Promise<File[]> {
     // Busca en la tabla 'File' todos los registros donde 'ownerId' coincida
     return this.fileRepository.find({
       where: { ownerId: userId },
-      order: { originalName: 'ASC' }, // Opcional: ordenar
+      order: { originalName: 'ASC' },
     });
   }
 
-  // --- MÉTODO CORREGIDO ---
   /**
    * Busca un archivo por su ID.
-   * Este método es simple y solo busca el archivo.
    */
   async findFileById(fileId: string): Promise<File | null> {
     const file = await this.fileRepository.findOne({
@@ -73,14 +75,12 @@ export class FilesService {
     return file;
   }
 
-  // --- MÉTODO NUEVO FALTANTE ---
   async updateFile(
     fileId: string,
     newFile: Express.Multer.File,
     user: User,
   ) {
     // 1. VERIFICAR PERMISO: ¿Puede este usuario EDITAR este archivo?
-    // Esto llamará a la lógica que creamos en PermissionsService.
     await this.permissionsService.checkPermission(
       user.id,
       fileId,
@@ -93,9 +93,6 @@ export class FilesService {
       throw new NotFoundException('Archivo no encontrado');
     }
 
-    // (Opcional: borrar el archivo físico viejo de /uploads)
-    // await this.storageStrategy.delete(fileToUpdate.storagePath);
-
     // 3. Guardar el nuevo archivo físico
     const newSavedPath = await this.storageStrategy.save(newFile);
 
@@ -104,7 +101,6 @@ export class FilesService {
     fileToUpdate.storagePath = newSavedPath;
     fileToUpdate.mimeType = newFile.mimetype;
     fileToUpdate.size = newFile.size;
-    // Nota: El ownerId no cambia
 
     await this.fileRepository.save(fileToUpdate);
 
@@ -113,5 +109,49 @@ export class FilesService {
       file: fileToUpdate,
     };
   }
-}
 
+  async downloadFile(fileId: string, user: User) {
+    // 1. Verificar permiso de VISTA
+    await this.permissionsService.checkPermission(
+      user.id,
+      fileId,
+      PermissionLevel.VIEW, // Solo necesita permiso de VISTA para descargar
+    );
+
+    // 2. Obtener metadatos del archivo
+    const file = await this.findFileById(fileId);
+    if (!file) {
+      throw new NotFoundException('Archivo no encontrado');
+    }
+
+    // 3. Crear un stream de lectura desde la carpeta /uploads
+    const filePath = join(process.cwd(), 'uploads', file.storagePath);
+    const fileStream = createReadStream(filePath);
+
+    return {
+      fileStream,
+      mimeType: file.mimeType,
+      originalName: file.originalName,
+    };
+  }
+
+  async deleteFile(fileId: string, user: User) {
+    // 1. Buscar el archivo
+    const file = await this.findFileById(fileId);
+    if (!file) {
+      throw new NotFoundException('Archivo no encontrado');
+    }
+
+    // 2. Verificar que es el DUEÑO (solo el dueño puede borrar)
+    if (file.ownerId !== user.id) {
+      throw new ForbiddenException('Solo el dueño puede eliminar este archivo');
+    }
+
+    // (Opcional: borrar el archivo físico de /uploads)
+
+    // 4. Borrar de la base de datos
+    await this.fileRepository.delete(fileId);
+
+    return { message: 'Archivo eliminado exitosamente' };
+  }
+}

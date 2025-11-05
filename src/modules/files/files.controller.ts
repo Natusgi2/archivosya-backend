@@ -5,12 +5,15 @@ import {
   UseInterceptors,
   UseGuards,
   Get,
-  Param,           // <-- 1. Importar
-  Put,             // <-- 1. Importar
+  Param,
+  Put,
+  Res, // <-- 1. Importar Response
+  Delete, // <-- 2. Importar Delete
+  StreamableFile, // <-- 3. Importar StreamableFile
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
-import type { Express } from 'express';
+import type { Express, Response } from 'express'; // <-- 4. Importar Response
 import { AuthGuard } from '@nestjs/passport';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { User } from '../users/entities/user.entity';
@@ -20,7 +23,6 @@ import { User } from '../users/entities/user.entity';
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
-  // ... (endpoint 'uploadFile' existente) ...
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   uploadFile(
@@ -30,20 +32,13 @@ export class FilesController {
     return this.filesService.handleFileUpload(file, user);
   }
 
-  // ... (endpoint 'getMyFiles' existente) ...
   @Get('my-files')
   getMyFiles(@GetUser() user: User) {
     return this.filesService.getFilesForUser(user.id);
   }
 
-
-  // --- NUEVO ENDPOINT DE MODIFICACIÓN ---
-  /**
-   * Reemplaza (actualiza) un archivo existente.
-   * Solo el dueño o un usuario con permiso de 'edit' puede hacerlo.
-   */
   @Put(':id')
-  @UseInterceptors(FileInterceptor('file')) // Recibe un nuevo archivo
+  @UseInterceptors(FileInterceptor('file'))
   updateFile(
     @Param('id') fileId: string,
     @GetUser() user: User,
@@ -51,5 +46,31 @@ export class FilesController {
   ) {
     return this.filesService.updateFile(fileId, newFile, user);
   }
+
+  // --- NUEVO ENDPOINT DE DESCARGA ---
+  @Get(':id/download')
+  async downloadFile(
+    @Param('id') fileId: string,
+    @GetUser() user: User,
+    @Res({ passthrough: true }) res: Response, // <-- Inyectar Response
+  ): Promise<StreamableFile> {
+    const { fileStream, mimeType, originalName } =
+      await this.filesService.downloadFile(fileId, user);
+
+    // Configura los headers para forzar la descarga en el navegador
+    res.set({
+      'Content-Type': mimeType,
+      'Content-Disposition': `attachment; filename="${originalName}"`,
+    });
+
+    return new StreamableFile(fileStream);
+  }
+
+  // --- NUEVO ENDPOINT DE ELIMINACIÓN ---
+  @Delete(':id')
+  deleteFile(@Param('id') fileId: string, @GetUser() user: User) {
+    return this.filesService.deleteFile(fileId, user);
+  }
 }
 
+  
