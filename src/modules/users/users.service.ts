@@ -11,45 +11,37 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  /**
-   * Crea un nuevo usuario en la base de datos
-   */
-  async create(
-    Nombre_Usuario: string, // <-- 1. AÑADIMOS EL NUEVO PARÁMETRO
+  
+  async create( // se crea la base de datos del usuario
+    Nombre_Usuario: string, 
     email: string,
     passwordHash: string,
-  ): Promise<User> {
-    const newUser = this.usersRepository.create({
-      Nombre_Usuario, // <-- 2. LO PASAMOS AQUÍ
+  ): Promise<User> { // se define el tipo de dato que retorna la funcion
+    const newUser = this.usersRepository.create({ // se crea el nuevo usuario como objeto
+      Nombre_Usuario, 
       email,
       passwordHash,
     });
-    return this.usersRepository.save(newUser);
+    return this.usersRepository.save(newUser);// se guarda el nuevo usuario en la base de datos
   }
 
-  /**
-   * Busca un usuario por su email
-   */
+  // Busca un usuario por su email
   async findByEmail(email: string): Promise<User | null> {
     return this.usersRepository.findOneBy({ email });
   }
 
-  /**
-   * Busca un usuario por su ID
-   */
+  // Busca un usuario por su ID
   async findById(id: string): Promise<User | null> {
     return this.usersRepository.findOneBy({ id });
   }
 
-  /**
-   * Obtiene una lista de todos los usuarios (sin sus contraseñas)
-   */
+  //Obtiene una lista de todos los usuarios (sin sus contraseñas)
   async findAll() {
-    const users = await this.usersRepository.find();
+    const users = await this.usersRepository.find(); // obtiene todoss los usuarios
     // ¡Importante! Nunca devuelvas las contraseñas
-    return users.map((user) => {
-      const { passwordHash, ...result } = user;
-      return result;
+    return users.map((user) => { 
+      const { passwordHash, ...result } = user; // no incluye la contraseña en el resultado final.
+      return result; 
     });
   }
 }

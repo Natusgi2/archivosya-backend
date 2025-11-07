@@ -1,9 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common'; // <-- Importar forwardRef
 import { CollaborationGateway } from './collaboration.gateway';
-import { PermissionsModule } from '../permissions/permissions.module'; // <-- 1. Importar
+import { PermissionsModule } from '../permissions/permissions.module';
 
 @Module({
-  imports: [PermissionsModule], // <-- 2. Añadir a imports
+  imports: [
+    forwardRef(() => PermissionsModule), // <-- Usar forwardRef aquí
+  ],
   providers: [CollaborationGateway],
+  exports: [CollaborationGateway], // <-- Exportar el Gateway
 })
 export class CollaborationModule {}

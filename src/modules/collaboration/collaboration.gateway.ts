@@ -1,3 +1,4 @@
+// archivosya-backend/src/modules/collaboration/collaboration.gateway.ts
 import {
   SubscribeMessage,
   WebSocketGateway,
@@ -11,10 +12,13 @@ import { Server, Socket } from 'socket.io';
 import { PermissionsService } from '../permissions/permissions.service';
 import { PermissionLevel } from '../permissions/entities/permission.entity';
 import { User } from '../users/entities/user.entity';
+import { File } from '../files/entities/file.entity';
+// --- 1. Importar Inject y forwardRef ---
+import { Inject, forwardRef } from '@nestjs/common';
 
 // Define un tipo para el Socket que incluye al usuario
 interface AuthenticatedSocket extends Socket {
-  user: User; // El adaptador WsAuthAdapter adjuntará el usuario aquí
+  user: User;
 }
 
 @WebSocketGateway({ cors: true })
@@ -24,11 +28,19 @@ export class CollaborationGateway
   @WebSocketServer()
   server: Server;
 
-  constructor(private permissionsService: PermissionsService) {}
+  // --- 2. CORRECCIÓN DEL ERROR ---
+  // Inyectar PermissionsService usando forwardRef para romper la dependencia circular
+  constructor(
+    @Inject(forwardRef(() => PermissionsService))
+    private permissionsService: PermissionsService,
+  ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
     // El 'client.user' fue adjuntado por nuestro WsAuthAdapter
     console.log(`Cliente conectado: ${client.user.email} (ID: ${client.id})`);
+
+    // Unir al usuario a una sala privada con su propio ID.
+    client.join(client.user.id);
   }
 
   handleDisconnect(client: AuthenticatedSocket) {
@@ -37,9 +49,6 @@ export class CollaborationGateway
     );
   }
 
-  /**
-   * Un usuario se une a una "sala" para un archivo específico
-   */
   @SubscribeMessage('joinFileRoom')
   async handleJoinRoom(
     @MessageBody() fileId: string,
@@ -60,15 +69,11 @@ export class CollaborationGateway
       );
       client.emit('joinedRoom', fileId); // Notifica al cliente que se unió
     } catch (error) {
-      // Si no tiene permiso, le envía un error
       console.error(`Error al unirse a la sala: ${error.message}`);
       client.emit('error', 'No tienes permiso para ver este archivo');
     }
   }
 
-  /**
-   * Un usuario envía una edición
-   */
   @SubscribeMessage('editFile')
   async handleEditFile(
     @MessageBody() payload: { fileId: string; content: any },
@@ -82,7 +87,6 @@ export class CollaborationGateway
         PermissionLevel.EDIT,
       );
 
-      // --- CORRECCIÓN DE SINTAXIS ---
       // Si tiene permiso, retransmite la edición a TODOS los demás en la sala
       client.broadcast
         .to(payload.fileId)
@@ -91,5 +95,14 @@ export class CollaborationGateway
       console.error(`Error al editar: ${error.message}`);
       client.emit('error', 'No tienes permiso para editar este archivo');
     }
+  }
+
+  /**
+   * Notifica a un usuario específico que se le ha compartido un archivo.
+   * Esto es llamado por el PermissionsService.
+   */
+  sendNewShareNotification(userId: string, file: File) {
+    console.log(`Enviando notificación 'newFileShared' al usuario ${userId}`);
+    this.server.to(userId).emit('newFileShared', file);
   }
 }
